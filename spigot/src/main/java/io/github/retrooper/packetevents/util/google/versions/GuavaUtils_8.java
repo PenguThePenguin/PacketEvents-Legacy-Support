@@ -18,14 +18,23 @@
 
 package io.github.retrooper.packetevents.util.google.versions;
 
+import com.github.retrooper.packetevents.manager.server.ServerVersion;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.MapMaker;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 public class GuavaUtils_8 {
 
     public static <T, K> ConcurrentMap<T, K> makeMap() {
         return new MapMaker().weakValues().makeMap();
+    }
+
+    public static Object inverseAndGet(Map<?, ?> map, Object key) {
+        if (!(map instanceof BiMap)) return map;
+
+        return ((BiMap<?, ?>) map).inverse().get(key);
     }
 
 }

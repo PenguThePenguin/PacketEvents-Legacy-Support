@@ -30,11 +30,9 @@ import com.github.retrooper.packetevents.util.reflection.Reflection;
 import com.github.retrooper.packetevents.util.reflection.ReflectionObject;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.MapMaker;
 import io.github.retrooper.packetevents.util.google.GuavaUtil;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.bukkit.Bukkit;
-import org.bukkit.Particle;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -944,7 +942,7 @@ public final class SpigotReflectionUtil {
     public static ParticleType toPacketEventsParticle(Enum<?> particle) {
         try {
             if (PacketEvents.getAPI().getServerManager().getVersion().isNewerThanOrEquals(ServerVersion.V_1_13)) {
-                BiMap<?, ?> map = (BiMap<?, ?>) CRAFT_PARTICLE_PARTICLES_FIELD.get(null);
+                Map<?, ?> map = (Map<?, ?>) CRAFT_PARTICLE_PARTICLES_FIELD.get(null);
                 // must be done because issues happen otherwise since they are actually the same particle 1.13+
 
                 if (particle.name().equals("BLOCK_DUST")) {
@@ -967,9 +965,11 @@ public final class SpigotReflectionUtil {
     public static Enum<?> fromPacketEventsParticle(ParticleType particle) {
         try {
             if (PacketEvents.getAPI().getServerManager().getVersion().isNewerThanOrEquals(ServerVersion.V_1_13)) {
-                BiMap<?, ?> map = (BiMap<?, ?>) CRAFT_PARTICLE_PARTICLES_FIELD.get(null);
+                Map<?, ?> map = (Map<?, ?>) CRAFT_PARTICLE_PARTICLES_FIELD.get(null);
                 Object minecraftKey = NMS_MINECRAFT_KEY_CONSTRUCTOR.newInstance(particle.getName().getNamespace(), particle.getName().getKey());
-                Object bukkitParticle = map.inverse().get(minecraftKey);
+                // If I just called (BiMap).inverse(),
+                // calling get() on a normal map here wouldn't use the opposite state
+                Object bukkitParticle = GuavaUtil.inverseAndGet(VERSION, map, minecraftKey);
                 return (Enum<?>) bukkitParticle;
             } else {
                 Map<String, ?> keyToParticleMap = (Map<String, ?>) LEGACY_NMS_KEY_TO_NMS_PARTICLE.get(null);
