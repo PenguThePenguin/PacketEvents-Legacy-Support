@@ -112,7 +112,11 @@ public class SpigotPacketEventsBuilder {
                         PacketType.prepare();
                     }
 
-                    injector = new SpigotChannelInjector();
+                    try {
+                        injector = new SpigotChannelInjector();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     //Server hasn't bound to the port yet.
                     lateBind = !injector.isServerBound();
                     //If late-bind is enabled, we will inject a bit later.
