@@ -84,7 +84,7 @@ public class SpigotPacketEventsBuilder {
             private final ServerManager serverManager = new ServerManagerImpl();
             private final PlayerManager playerManager = new PlayerManagerImpl();
             private final NettyManager nettyManager = new NettyManagerImpl();
-            private SpigotChannelInjector injector;
+            private final SpigotChannelInjector injector = new SpigotChannelInjector();
             private final LogManager logManager = new BukkitLogManager();
             private final AtomicBoolean loaded = new AtomicBoolean(false);
             private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -112,7 +112,6 @@ public class SpigotPacketEventsBuilder {
                         PacketType.prepare();
                     }
 
-                    injector = new SpigotChannelInjectorModern();
                     //Server hasn't bound to the port yet.
                     lateBind = !injector.isServerBound();
                     //If late-bind is enabled, we will inject a bit later.

@@ -11,7 +11,7 @@ java.targetCompatibility = JavaVersion.VERSION_1_8
 shadowJar {
     relocate 'net.kyori.adventure.text.serializer', 'io.github.retrooper.packetevents.adventure.serializer'
     dependencies {
-        exclude(dependency('com.google.code.gson:gson:2.8.0'))
+//        exclude(dependency('com.google.code.gson:gson:2.8.0')) -> I think spigot (1.7.10) has this relocated
         exclude(dependency('com.google.code.gson:gson:2.8.5'))
         exclude(dependency('com.google.code.gson:gson:2.8.8'))
     }
