@@ -60,7 +60,7 @@ public final class SpigotReflectionUtil {
     public static final String OBC_PACKAGE = "org.bukkit.craftbukkit." + MODIFIED_PACKAGE_NAME + ".";
     public static ServerVersion VERSION;
     //Booleans
-    public static boolean USE_MODERN_NETTY_PACKAGE = false;
+    public static boolean USE_MODERN_NETTY_PACKAGE;
     public static boolean V_1_19_OR_HIGHER;
     public static boolean V_1_17_OR_HIGHER;
     public static boolean V_1_12_OR_HIGHER;

@@ -97,29 +97,14 @@ public class SpigotChannelInjectorLegacy extends SpigotChannelInjector {
             reflectServerConnection.writeList(connectionChannelsListIndex, wrappedList);
 
             //Player channels might have been registered already. Let us add our handlers. We are a little late though.
-            if (networkManagers == null) {
-                networkManagers = SpigotReflectionUtil.getNetworkManagers();
-            }
-            synchronized (networkManagers) {
-                if (!networkManagers.isEmpty()) {
-                    PacketEvents.getAPI().getLogManager().debug("Late bind not enabled, injecting into existing channel");
+            List<Object> networkManagers = SpigotReflectionUtil.getNetworkManagers();
+            for (Object networkManager : networkManagers) {
+                ReflectionObject networkManagerWrapper = new ReflectionObject(networkManager);
+                Channel channel = networkManagerWrapper.readObject(0, Channel.class);
+                if (channel == null) {
+                    continue;
                 }
-
-                //Player channels might have been registered already. Let us add our handlers. We are a little late though.
-                List<Object> networkManagers = SpigotReflectionUtil.getNetworkManagers();
-                for (Object networkManager : networkManagers) {
-                    ReflectionObject networkManagerWrapper = new ReflectionObject(networkManager);
-                    Channel channel = networkManagerWrapper.readObject(0, Channel.class);
-                    if (channel == null) {
-                        continue;
-                    }
-                    try {
-                        ServerConnectionInitializerLegacy.initChannel(channel, ConnectionState.PLAY);
-                    } catch (Exception e) {
-                        System.out.println("Spigot injector failed to inject into an existing channel.");
-                        e.printStackTrace();
-                    }
-                }
+                ServerConnectionInitializerLegacy.initChannel(channel, ConnectionState.PLAY);
             }
         }
     }
