@@ -1,6 +1,6 @@
 /*
  * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2023 retrooper and contributors
+ * Copyright (C) 2021 retrooper and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.github.retrooper.packetevents.util;
+package io.github.retrooper.packetevents.util.google.versions;
 
-public class FakeChannelUtil {
-    public static boolean isFakeChannel(Object channel) {
-        return channel.getClass().getSimpleName().equals("FakeChannel")
-                || channel.getClass().getSimpleName().equals("SpoofedChannel");
+import net.minecraft.util.com.google.common.collect.MapMaker;
+
+import java.util.concurrent.ConcurrentMap;
+
+public class GuavaUtils_7 {
+
+    public static <T, K> ConcurrentMap<T, K> makeMap() {
+        return new MapMaker().weakValues().makeMap();
     }
+
 }

@@ -1,6 +1,6 @@
 /*
  * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2022 retrooper and contributors
+ * Copyright (C) 2021 retrooper and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.injector.connection;
+package io.github.retrooper.packetevents.injector.legacy.connection;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.UserConnectEvent;
@@ -26,20 +26,21 @@ import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.github.retrooper.packetevents.util.FakeChannelUtil;
 import com.github.retrooper.packetevents.util.PacketEventsImplHelper;
-import io.github.retrooper.packetevents.injector.handlers.PacketEventsDecoder;
-import io.github.retrooper.packetevents.injector.handlers.PacketEventsEncoder;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
+import io.github.retrooper.packetevents.injector.legacy.handlers.PacketEventsDecoderLegacy;
+import io.github.retrooper.packetevents.injector.legacy.handlers.PacketEventsEncoderLegacy;
+import net.minecraft.util.io.netty.channel.Channel;
+import net.minecraft.util.io.netty.channel.ChannelFutureListener;
+import net.minecraft.util.io.netty.channel.ChannelHandler;
+import net.minecraft.util.io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.util.NoSuchElementException;
 
-
-public class ServerConnectionInitializer {
+public class ServerConnectionInitializerLegacy {
 
     public static void initChannel(Object ch, ConnectionState connectionState) {
         Channel channel = (Channel) ch;
-        if (FakeChannelUtil.isFakeChannel(channel)) {
+        // 1.7 has no EpollSocketChannel
+        if (!(channel instanceof NioSocketChannel) || FakeChannelUtil.isFakeChannel(channel)) {
             return;
         }
         User user = new User(channel, connectionState, null, new UserProfile(null, null));
@@ -70,15 +71,28 @@ public class ServerConnectionInitializer {
                 return;
             }
 
-            relocateHandlers(channel, null, user);
+            try {
+                channel.pipeline().addAfter("splitter", PacketEvents.DECODER_NAME, new PacketEventsDecoderLegacy(user));
+            } catch (NoSuchElementException ex) {
+                String handlers = ChannelHelper.pipelineHandlerNamesAsString(channel);
+                throw new IllegalStateException("PacketEvents failed to add a decoder to the netty pipeline. Pipeline handlers: " + handlers, ex);
+            }
 
-            channel.closeFuture().addListener((ChannelFutureListener) future -> PacketEventsImplHelper.handleDisconnection(user.getChannel(), user.getUUID()));
-            PacketEvents.getAPI().getProtocolManager().setUser(channel, user);
+            //No need to account for ViaVersion, as they don't support 1.7.10
+            channel.pipeline().addBefore("encoder", PacketEvents.ENCODER_NAME, new PacketEventsEncoderLegacy(user));
         }
+
+        channel.closeFuture().addListener((ChannelFutureListener) future -> PacketEventsImplHelper.handleDisconnection(user.getChannel(), user.getUUID()));
+        PacketEvents.getAPI().getProtocolManager().setUser(channel, user);
     }
 
-    public static void destroyHandlers(Object ch) {
+    public static void destroyChannel(Object ch) {
         Channel channel = (Channel) ch;
+        //1.7 has no EpollSocketChannel
+        if (!(channel instanceof NioSocketChannel)) {
+            return;
+        }
+
         if (channel.pipeline().get(PacketEvents.DECODER_NAME) != null) {
             channel.pipeline().remove(PacketEvents.DECODER_NAME);
         } else {
@@ -92,7 +106,7 @@ public class ServerConnectionInitializer {
         }
     }
 
-    public static void relocateHandlers(Channel ctx, PacketEventsDecoder decoder, User user) {
+    public static void relocateHandlers(Channel ctx, PacketEventsDecoderLegacy decoder, User user) {
         // Decoder == null means we haven't made handlers for the user yet
         try {
             ChannelHandler encoder;
@@ -101,13 +115,13 @@ public class ServerConnectionInitializer {
                 if (decoder.hasBeenRelocated) return;
                 // Make sure we only relocate because of compression once
                 decoder.hasBeenRelocated = true;
-                decoder = (PacketEventsDecoder) ctx.pipeline().remove(PacketEvents.DECODER_NAME);
+                decoder = (PacketEventsDecoderLegacy) ctx.pipeline().remove(PacketEvents.DECODER_NAME);
                 encoder = ctx.pipeline().remove(PacketEvents.ENCODER_NAME);
-                decoder = new PacketEventsDecoder(decoder);
-                encoder = new PacketEventsEncoder(encoder);
+                decoder = new PacketEventsDecoderLegacy(decoder);
+                encoder = new PacketEventsEncoderLegacy(encoder);
             } else {
-                encoder = new PacketEventsEncoder(user);
-                decoder = new PacketEventsDecoder(user);
+                encoder = new PacketEventsEncoderLegacy(user);
+                decoder = new PacketEventsDecoderLegacy(user);
             }
             // We are targeting the encoder and decoder since we don't want to target specific plugins
             // (ProtocolSupport has changed its handler name in the past)
@@ -119,4 +133,5 @@ public class ServerConnectionInitializer {
             throw new IllegalStateException("PacketEvents failed to add a decoder to the netty pipeline. Pipeline handlers: " + handlers, ex);
         }
     }
+
 }

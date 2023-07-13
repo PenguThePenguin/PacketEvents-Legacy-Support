@@ -19,6 +19,7 @@
 package io.github.retrooper.packetevents.bukkit;
 
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.injector.ChannelInjector;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.util.FakeChannelUtil;
 import io.github.retrooper.packetevents.injector.SpigotChannelInjector;

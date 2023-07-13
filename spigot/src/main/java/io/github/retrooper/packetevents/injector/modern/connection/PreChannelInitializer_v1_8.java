@@ -16,34 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.netty.buffer;
+package io.github.retrooper.packetevents.injector.modern.connection;
 
-import com.github.retrooper.packetevents.netty.buffer.ByteBufAllocationOperator;
-import io.netty.buffer.Unpooled;
+import com.github.retrooper.packetevents.protocol.ConnectionState;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
 
-public class ByteBufAllocationOperatorModernImpl implements ByteBufAllocationOperator {
+public class PreChannelInitializer_v1_8 extends ChannelInitializer<Channel> {
     @Override
-    public Object wrappedBuffer(byte[] bytes) {
-        return Unpooled.wrappedBuffer(bytes);
-    }
-
-    @Override
-    public Object copiedBuffer(byte[] bytes) {
-        return Unpooled.copiedBuffer(bytes);
-    }
-
-    @Override
-    public Object buffer() {
-        return Unpooled.buffer();
-    }
-
-    @Override
-    public Object directBuffer() {
-        return Unpooled.directBuffer();
-    }
-
-    @Override
-    public Object compositeBuffer() {
-        return Unpooled.compositeBuffer();
+    protected void initChannel(Channel channel) {
+        channel.pipeline().addLast(new ChannelInitializer<Channel>() {
+            @Override
+            protected void initChannel(Channel channel) {
+                ServerConnectionInitializer.initChannel(channel, ConnectionState.HANDSHAKING);
+            }
+        });
     }
 }

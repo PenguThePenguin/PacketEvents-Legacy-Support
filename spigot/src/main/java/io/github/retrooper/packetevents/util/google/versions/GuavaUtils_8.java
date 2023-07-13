@@ -1,6 +1,6 @@
 /*
  * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2022 retrooper and contributors
+ * Copyright (C) 2021 retrooper and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,20 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.injector.connection;
+package io.github.retrooper.packetevents.util.google.versions;
 
-import com.github.retrooper.packetevents.protocol.ConnectionState;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
+import com.google.common.collect.MapMaker;
 
-public class PreChannelInitializer_v1_8 extends ChannelInitializer<Channel> {
-    @Override
-    protected void initChannel(Channel channel) {
-        channel.pipeline().addLast(new ChannelInitializer<Channel>() {
-            @Override
-            protected void initChannel(Channel channel) {
-                ServerConnectionInitializer.initChannel(channel, ConnectionState.HANDSHAKING);
-            }
-        });
+import java.util.concurrent.ConcurrentMap;
+
+public class GuavaUtils_8 {
+
+    public static <T, K> ConcurrentMap<T, K> makeMap() {
+        return new MapMaker().weakValues().makeMap();
     }
+
 }

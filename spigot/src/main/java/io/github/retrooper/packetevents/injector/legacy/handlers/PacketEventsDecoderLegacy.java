@@ -1,6 +1,6 @@
 /*
  * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2022 retrooper and contributors
+ * Copyright (C) 2021 retrooper and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,35 +16,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.injector.handlers;
+package io.github.retrooper.packetevents.injector.legacy.handlers;
 
 import com.github.retrooper.packetevents.exception.PacketProcessException;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.util.ExceptionUtil;
 import com.github.retrooper.packetevents.util.PacketEventsImplHelper;
-import io.github.retrooper.packetevents.injector.connection.ServerConnectionInitializer;
+import io.github.retrooper.packetevents.injector.legacy.connection.ServerConnectionInitializerLegacy;
+import io.github.retrooper.packetevents.injector.modern.handlers.PacketEventsEncoder;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
+import net.minecraft.util.io.netty.buffer.ByteBuf;
+import net.minecraft.util.io.netty.channel.ChannelHandler;
+import net.minecraft.util.io.netty.channel.ChannelHandlerContext;
+import net.minecraft.util.io.netty.handler.codec.MessageToMessageDecoder;
 import org.bukkit.entity.Player;
 
 import java.util.List;
 
-public class PacketEventsDecoder extends MessageToMessageDecoder<ByteBuf> {
+@ChannelHandler.Sharable
+public class PacketEventsDecoderLegacy extends MessageToMessageDecoder<ByteBuf> {
+
+    public volatile Player player;
     public User user;
-    public Player player;
+    public boolean handledCompression;
     public boolean hasBeenRelocated;
 
-    public PacketEventsDecoder(User user) {
+    public PacketEventsDecoderLegacy(User user) {
         this.user = user;
     }
 
-    public PacketEventsDecoder(PacketEventsDecoder decoder) {
-        user = decoder.user;
-        player = decoder.player;
-        hasBeenRelocated = decoder.hasBeenRelocated;
+    public PacketEventsDecoderLegacy(PacketEventsDecoderLegacy decoder) {
+        this.player = decoder.player;
+        this.user = decoder.user;
+        this.handledCompression = decoder.handledCompression;
     }
 
     public void read(ChannelHandlerContext ctx, ByteBuf input, List<Object> out) throws Exception {
@@ -53,9 +58,9 @@ public class PacketEventsDecoder extends MessageToMessageDecoder<ByteBuf> {
     }
 
     @Override
-    public void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
-        if (buffer.isReadable()) {
-            read(ctx, buffer, out);
+    public void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
+        if (byteBuf.isReadable()) {
+            read(ctx, byteBuf, out);
         }
     }
 
@@ -72,14 +77,14 @@ public class PacketEventsDecoder extends MessageToMessageDecoder<ByteBuf> {
     }
 
     @Override
-    public void userEventTriggered(final ChannelHandlerContext ctx, final Object event) throws Exception {
+    public void userEventTriggered(ChannelHandlerContext ctx, Object event) throws Exception {
         if (PacketEventsEncoder.COMPRESSION_ENABLED_EVENT == null || event != PacketEventsEncoder.COMPRESSION_ENABLED_EVENT) {
             super.userEventTriggered(ctx, event);
             return;
         }
 
         // Via changes the order of handlers in this event, so we must respond to Via changing their stuff
-        ServerConnectionInitializer.relocateHandlers(ctx.channel(), this, user);
+        ServerConnectionInitializerLegacy.relocateHandlers(ctx.channel(), this, user);
         super.userEventTriggered(ctx, event);
     }
 

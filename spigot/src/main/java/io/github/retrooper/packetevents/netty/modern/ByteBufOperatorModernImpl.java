@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.netty.buffer;
+package io.github.retrooper.packetevents.netty.modern.buffer;
 
 import com.github.retrooper.packetevents.netty.buffer.ByteBufOperator;
 import io.netty.buffer.ByteBuf;

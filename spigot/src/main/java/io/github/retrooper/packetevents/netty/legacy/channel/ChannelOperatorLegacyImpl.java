@@ -1,6 +1,6 @@
 /*
  * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2022 retrooper and contributors
+ * Copyright (C) 2021 retrooper and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,15 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.netty.channel;
+package io.github.retrooper.packetevents.netty.legacy.channel;
 
 import com.github.retrooper.packetevents.netty.channel.ChannelOperator;
-import io.netty.channel.Channel;
+import net.minecraft.util.io.netty.channel.Channel;
+import net.minecraft.util.io.netty.handler.timeout.ReadTimeoutException;
 
+import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.channels.ClosedChannelException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public class ChannelOperatorModernImpl implements ChannelOperator {
+public class ChannelOperatorLegacyImpl implements ChannelOperator {
     @Override
     public SocketAddress remoteAddress(Object channel) {
         return ((Channel) channel).remoteAddress();
@@ -81,11 +86,6 @@ public class ChannelOperatorModernImpl implements ChannelOperator {
     }
 
     @Override
-    public Object getPipeline(Object channel) {
-        return ((Channel) channel).pipeline();
-    }
-
-    @Override
     public Object fireChannelReadInContext(Object channel, String ctx, Object buffer) {
         return ((Channel) channel).pipeline().context(ctx).fireChannelRead(buffer);
     }
@@ -97,17 +97,22 @@ public class ChannelOperatorModernImpl implements ChannelOperator {
 
     @Override
     public Object getPipelineHandler(Object channel, String name) {
-        return ((Channel) channel).pipeline().get(name);
+        return ((Channel)channel).pipeline().get(name);
     }
 
     @Override
     public Object getPipelineContext(Object channel, String name) {
-        return ((Channel) channel).pipeline().context(name);
+        return ((Channel)channel).pipeline().context(name);
+    }
+
+    @Override
+    public Object getPipeline(Object channel) {
+        return ((Channel) channel).pipeline();
     }
 
     @Override
     public void runInEventLoop(Object channel, Runnable runnable) {
-        ((Channel) channel).eventLoop().execute(runnable);
+        ((Channel)channel).eventLoop().execute(runnable);
     }
 
     @Override

@@ -31,6 +31,7 @@ import com.github.retrooper.packetevents.util.reflection.ReflectionObject;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.MapMaker;
+import io.github.retrooper.packetevents.util.google.GuavaUtil;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
@@ -59,6 +60,7 @@ public final class SpigotReflectionUtil {
     public static final String OBC_PACKAGE = "org.bukkit.craftbukkit." + MODIFIED_PACKAGE_NAME + ".";
     public static ServerVersion VERSION;
     //Booleans
+    public static boolean USE_MODERN_NETTY_PACKAGE;
     public static boolean V_1_19_OR_HIGHER;
     public static boolean V_1_17_OR_HIGHER;
     public static boolean V_1_12_OR_HIGHER;
@@ -97,7 +99,7 @@ public final class SpigotReflectionUtil {
     private static Object MINECRAFT_SERVER_CONNECTION_INSTANCE;
 
     //Cache entities right after we request/find them for faster search.
-    public static Map<Integer, Entity> ENTITY_ID_CACHE = new MapMaker().weakValues().makeMap();
+    public static Map<Integer, Entity> ENTITY_ID_CACHE;
 
     private static void initConstructors() {
         Class<?> itemClass = NMS_IMATERIAL_CLASS != null ? NMS_IMATERIAL_CLASS : NMS_ITEM_CLASS;
@@ -236,7 +238,11 @@ public final class SpigotReflectionUtil {
         BLOCK_CLASS = getServerClass("world.level.block.Block", "Block");
         CRAFT_BLOCK_DATA_CLASS = getOBCClass("block.data.CraftBlockData");
 
-        GAME_PROFILE_CLASS = Reflection.getClassByNameWithoutException("com.mojang.authlib.GameProfile");
+        if (USE_MODERN_NETTY_PACKAGE) {
+            GAME_PROFILE_CLASS = Reflection.getClassByNameWithoutException("com.mojang.authlib.GameProfile");
+        } else {
+            GAME_PROFILE_CLASS = Reflection.getClassByNameWithoutException("net.minecraft.util.com.mojang.authlib.GameProfile");
+        }
 
         CRAFT_WORLD_CLASS = getOBCClass("CraftWorld");
         CRAFT_PLAYER_CLASS = getOBCClass("entity.CraftPlayer");
@@ -258,6 +264,23 @@ public final class SpigotReflectionUtil {
         V_1_19_OR_HIGHER = VERSION.isNewerThanOrEquals(ServerVersion.V_1_19);
         V_1_17_OR_HIGHER = VERSION.isNewerThanOrEquals(ServerVersion.V_1_17);
         V_1_12_OR_HIGHER = VERSION.isNewerThanOrEquals(ServerVersion.V_1_12);
+        USE_MODERN_NETTY_PACKAGE = VERSION.isNewerThan(ServerVersion.V_1_7_10);
+
+        SpigotReflectionUtil.ENTITY_ID_CACHE = GuavaUtil.makeMap(VERSION);
+        try {
+            //Check if the selected netty location is valid
+            getNettyClass("channel.Channel");
+        } catch (Exception ex) {
+            PacketEvents.getAPI().getLogger().severe("PacketEvents is searching for netty...");
+            //Time to correct the netty location
+            USE_MODERN_NETTY_PACKAGE = !USE_MODERN_NETTY_PACKAGE;
+            try {
+                getNettyClass("channel.Channel");
+            } catch (Exception ex2) {
+                //Failed again? Where is netty?
+                PacketEvents.getAPI().getLogger().severe("PacketEvents failed to locate netty on your server.");
+            }
+        }
 
         initClasses();
         initFields();
@@ -328,7 +351,7 @@ public final class SpigotReflectionUtil {
     }
 
     public static Class<?> getNettyClass(String name) {
-        return Reflection.getClassByNameWithoutException("io.netty." + name);
+        return Reflection.getClassByNameWithoutException((USE_MODERN_NETTY_PACKAGE ? "io.netty." : "net.minecraft.util.io.netty.") + name);
     }
 
     public static Entity getBukkitEntity(Object nmsEntity) {
@@ -393,6 +416,12 @@ public final class SpigotReflectionUtil {
         if (PROPERTY_MAP_CLASS == null) {
             PROPERTY_MAP_CLASS = Reflection.getClassByNameWithoutException("" +
                     "com.mojang.authlib.properties.PropertyMap");
+
+            if (PROPERTY_MAP_CLASS == null) {
+                PROPERTY_MAP_CLASS = Reflection.getClassByNameWithoutException("" +
+                        "net.minecraft.util.com.mojang.authlib.properties.PropertyMap");
+            }
+
             PROPERTY_MAP_GET_METHOD = Reflection.getMethodExact(PROPERTY_MAP_CLASS, "get", Collection.class, Object.class);
         }
 

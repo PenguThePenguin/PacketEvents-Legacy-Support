@@ -1,6 +1,6 @@
 /*
  * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2022 retrooper and contributors
+ * Copyright (C) 2021 retrooper and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.retrooper.packetevents.injector.handlers;
+package io.github.retrooper.packetevents.injector.legacy.handlers;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -26,56 +26,53 @@ import com.github.retrooper.packetevents.exception.PacketProcessException;
 import com.github.retrooper.packetevents.netty.buffer.ByteBufHelper;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.player.User;
-import com.github.retrooper.packetevents.util.EventCreationUtil;
 import com.github.retrooper.packetevents.util.ExceptionUtil;
 import com.github.retrooper.packetevents.util.PacketEventsImplHelper;
-import com.github.retrooper.packetevents.wrapper.PacketWrapper;
-import io.github.retrooper.packetevents.injector.connection.ServerConnectionInitializer;
+import io.github.retrooper.packetevents.injector.legacy.connection.ServerConnectionInitializerLegacy;
 import io.github.retrooper.packetevents.util.viaversion.CustomPipelineUtil;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.MessageToMessageEncoder;
+import net.minecraft.util.io.netty.buffer.ByteBuf;
+import net.minecraft.util.io.netty.channel.Channel;
+import net.minecraft.util.io.netty.channel.ChannelHandler;
+import net.minecraft.util.io.netty.channel.ChannelHandlerContext;
+import net.minecraft.util.io.netty.channel.ChannelPromise;
+import net.minecraft.util.io.netty.handler.codec.MessageToByteEncoder;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.List;
 
-public class PacketEventsEncoder extends MessageToMessageEncoder<ByteBuf> {
+@ChannelHandler.Sharable
+public class PacketEventsEncoderLegacy extends MessageToByteEncoder<ByteBuf> {
+
     public User user;
     public Player player;
-    private boolean handledCompression = COMPRESSION_ENABLED_EVENT != null;
+    private boolean handledCompression;
     private ChannelPromise promise;
-    public static final Object COMPRESSION_ENABLED_EVENT = paperCompressionEnabledEvent();
 
-    public PacketEventsEncoder(User user) {
+    public PacketEventsEncoderLegacy(User user) {
         this.user = user;
     }
 
-    public PacketEventsEncoder(ChannelHandler encoder) {
-        user = ((PacketEventsEncoder) encoder).user;
-        player = ((PacketEventsEncoder) encoder).player;
-        handledCompression = ((PacketEventsEncoder) encoder).handledCompression;
-        promise = ((PacketEventsEncoder) encoder).promise;
+    public PacketEventsEncoderLegacy(ChannelHandler encoder) {
+        user = ((PacketEventsEncoderLegacy) encoder).user;
+        player = ((PacketEventsEncoderLegacy) encoder).player;
+        handledCompression = ((PacketEventsEncoderLegacy) encoder).handledCompression;
+        promise = ((PacketEventsEncoderLegacy) encoder).promise;
     }
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> list) throws Exception {
-        boolean needsRecompression = !handledCompression && handleCompression(ctx, byteBuf);
-        handleClientBoundPacket(ctx.channel(), user, player, byteBuf, this.promise);
+    protected void encode(ChannelHandlerContext ctx, ByteBuf in, ByteBuf out) throws Exception {
+        boolean needsRecompression = !handledCompression && handleCompression(ctx, in);
+        handleClientBoundPacket(ctx.channel(), user, player, in, this.promise);
 
         if (needsRecompression) {
-            compress(ctx, byteBuf);
+            compress(ctx, in);
         }
 
-        // So apparently, this is how ViaVersion hacks around bungeecord not supporting sending empty packets
-        if (!ByteBufHelper.isReadable(byteBuf)) {
+        if (!ByteBufHelper.isReadable(in)) {
             throw CancelPacketException.INSTANCE;
         }
 
-        list.add(byteBuf.retain());
+        out.writeBytes(in);
     }
 
     private PacketSendEvent handleClientBoundPacket(Channel channel, User user, Object player, ByteBuf buffer, ChannelPromise promise) throws Exception {
@@ -101,7 +98,6 @@ public class PacketEventsEncoder extends MessageToMessageEncoder<ByteBuf> {
         super.write(ctx, msg, promise);
     }
 
-
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         // This is a terrible hack (to support bungee), I think we should use something other than a MessageToMessageEncoder
@@ -122,15 +118,6 @@ public class PacketEventsEncoder extends MessageToMessageEncoder<ByteBuf> {
         }
 
         super.exceptionCaught(ctx, cause);
-    }
-
-    private static Object paperCompressionEnabledEvent() {
-        try {
-            final Class<?> eventClass = Class.forName("io.papermc.paper.network.ConnectionEvent");
-            return eventClass.getDeclaredField("COMPRESSION_THRESHOLD_SET").get(null);
-        } catch (final ReflectiveOperationException e) {
-            return null;
-        }
     }
 
     private void compress(ChannelHandlerContext ctx, ByteBuf input) throws InvocationTargetException {
@@ -170,10 +157,11 @@ public class PacketEventsEncoder extends MessageToMessageEncoder<ByteBuf> {
             //But first we need to compress the data and re-compress it after we do all our processing to avoid issues.
             decompress(ctx, buffer, buffer);
             //Let us relocate and no longer deal with compression.
-            PacketEventsDecoder decoder = (PacketEventsDecoder) ctx.pipeline().get(PacketEvents.DECODER_NAME);
-            ServerConnectionInitializer.relocateHandlers(ctx.channel(), decoder, user);
+            PacketEventsDecoderLegacy decoder = (PacketEventsDecoderLegacy) ctx.pipeline().get(PacketEvents.DECODER_NAME);
+            ServerConnectionInitializerLegacy.relocateHandlers(ctx.channel(), decoder, user);
             return true;
         }
         return false;
     }
+
 }

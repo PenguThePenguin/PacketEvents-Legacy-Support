@@ -21,11 +21,13 @@ package io.github.retrooper.packetevents.manager.player;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.manager.player.PlayerManager;
 import com.github.retrooper.packetevents.manager.protocol.ProtocolManager;
+import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.netty.channel.ChannelHelper;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.User;
 import io.github.retrooper.packetevents.util.PlayerPingAccessorModern;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
+import io.github.retrooper.packetevents.util.SpigotVersionLookup_1_7;
 import io.github.retrooper.packetevents.util.protocolsupport.ProtocolSupportUtil;
 import io.github.retrooper.packetevents.util.viaversion.ViaVersionUtil;
 import org.bukkit.entity.Player;
@@ -59,9 +61,14 @@ public class PlayerManagerImpl implements PlayerManager {
                 PacketEvents.getAPI().getLogManager().debug("Requested ViaVersion for " + player.getName() + "'s protocol version. Protocol version: " + protocolVersion);
 
             } else {
-                //No protocol translation plugins available, the client must be the same version as the server.
-                protocolVersion = PacketEvents.getAPI().getServerManager().getVersion().getProtocolVersion();
-                PacketEvents.getAPI().getLogManager().debug("No protocol translation plugins are available. We will assume " + user.getName() + "'s protocol version is the same as the server's protocol version. Protocol version: " + protocolVersion);
+                if (PacketEvents.getAPI().getServerManager().getVersion() == ServerVersion.V_1_7_10) {
+                    protocolVersion = SpigotVersionLookup_1_7.getProtocolVersion(player);
+                    PacketEvents.getAPI().getLogManager().debug("Requested Spigot 1.7.10 for " + player.getName() + "'s protocol version. Protocol version: " + protocolVersion);
+                } else {
+                    //No protocol translation plugins available, the client must be the same version as the server.
+                    protocolVersion = PacketEvents.getAPI().getServerManager().getVersion().getProtocolVersion();
+                    PacketEvents.getAPI().getLogManager().debug("No protocol translation plugins are available. We will assume " + user.getAddress().getHostName() + "'s protocol version is the same as the server's protocol version. Protocol version: " + protocolVersion);
+                }
             }
             ClientVersion version = ClientVersion.getById(protocolVersion);
             user.setClientVersion(version);

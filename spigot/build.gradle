@@ -26,4 +26,5 @@ dependencies {
     compileOnly 'com.github.ProtocolSupport:ProtocolSupport:3d24efeda6'
 
     compileOnly 'org.github.spigot:1.8:1.8'
+    compileOnly 'org.github.spigot:1.7.10:1.7.10' // 1.7 relocated netty
 }
