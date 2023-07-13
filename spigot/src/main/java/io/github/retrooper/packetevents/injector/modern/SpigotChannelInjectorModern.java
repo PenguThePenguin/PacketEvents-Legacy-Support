@@ -19,7 +19,6 @@
 package io.github.retrooper.packetevents.injector.modern;
 
 import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.injector.ChannelInjector;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.util.reflection.ReflectionObject;
@@ -40,7 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ModernSpigotChannelInjector extends SpigotChannelInjector {
+public class SpigotChannelInjectorModern extends SpigotChannelInjector {
     //Channels that process connecting clients.
     public final Set<Channel> injectedConnectionChannels = new HashSet<>();
     public List<Object> networkManagers;

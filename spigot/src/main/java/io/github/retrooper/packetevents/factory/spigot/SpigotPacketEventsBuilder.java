@@ -31,7 +31,9 @@ import com.github.retrooper.packetevents.settings.PacketEventsSettings;
 import com.github.retrooper.packetevents.util.LogManager;
 import io.github.retrooper.packetevents.bstats.Metrics;
 import io.github.retrooper.packetevents.bukkit.InternalBukkitListener;
-import io.github.retrooper.packetevents.injector.modern.ModernSpigotChannelInjector;
+import io.github.retrooper.packetevents.injector.SpigotChannelInjector;
+import io.github.retrooper.packetevents.injector.legacy.connection.ServerConnectionInitializerLegacy;
+import io.github.retrooper.packetevents.injector.modern.SpigotChannelInjectorModern;
 import io.github.retrooper.packetevents.injector.modern.connection.ServerConnectionInitializer;
 import io.github.retrooper.packetevents.manager.InternalBukkitPacketListener;
 import io.github.retrooper.packetevents.manager.player.PlayerManagerImpl;
@@ -82,7 +84,7 @@ public class SpigotPacketEventsBuilder {
             private final ServerManager serverManager = new ServerManagerImpl();
             private final PlayerManager playerManager = new PlayerManagerImpl();
             private final NettyManager nettyManager = new NettyManagerImpl();
-            private final ModernSpigotChannelInjector injector = new ModernSpigotChannelInjector();
+            private SpigotChannelInjector injector;
             private final LogManager logManager = new BukkitLogManager();
             private final AtomicBoolean loaded = new AtomicBoolean(false);
             private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -110,6 +112,7 @@ public class SpigotPacketEventsBuilder {
                         PacketType.prepare();
                     }
 
+                    injector = new SpigotChannelInjectorModern();
                     //Server hasn't bound to the port yet.
                     lateBind = !injector.isServerBound();
                     //If late-bind is enabled, we will inject a bit later.
@@ -208,8 +211,13 @@ public class SpigotPacketEventsBuilder {
                 if (initialized.getAndSet(false)) {
                     //Uninject the injector if needed(depends on the injector implementation)
                     injector.uninject();
+
                     for (User user : ProtocolManager.USERS.values()) {
-                        ServerConnectionInitializer.destroyHandlers(user.getChannel());
+                        if (SpigotReflectionUtil.USE_MODERN_NETTY_PACKAGE) {
+                            ServerConnectionInitializer.destroyHandlers(user.getChannel());
+                        } else {
+                            ServerConnectionInitializerLegacy.destroyHandlers(user.getChannel());
+                        }
                     }
                     //Unregister all listeners. Because if we attempt to reload, we will end up with duplicate listeners.
                     getEventManager().unregisterAllListeners();

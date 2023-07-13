@@ -24,7 +24,6 @@ import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.util.ExceptionUtil;
 import com.github.retrooper.packetevents.util.PacketEventsImplHelper;
 import io.github.retrooper.packetevents.injector.legacy.connection.ServerConnectionInitializerLegacy;
-import io.github.retrooper.packetevents.injector.modern.handlers.PacketEventsEncoder;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
 import net.minecraft.util.io.netty.buffer.ByteBuf;
 import net.minecraft.util.io.netty.channel.ChannelHandler;
@@ -74,18 +73,6 @@ public class PacketEventsDecoderLegacy extends MessageToMessageDecoder<ByteBuf> 
                 && (user != null && user.getConnectionState() != ConnectionState.HANDSHAKING)) {
             cause.printStackTrace();
         }
-    }
-
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object event) throws Exception {
-        if (PacketEventsEncoder.COMPRESSION_ENABLED_EVENT == null || event != PacketEventsEncoder.COMPRESSION_ENABLED_EVENT) {
-            super.userEventTriggered(ctx, event);
-            return;
-        }
-
-        // Via changes the order of handlers in this event, so we must respond to Via changing their stuff
-        ServerConnectionInitializerLegacy.relocateHandlers(ctx.channel(), this, user);
-        super.userEventTriggered(ctx, event);
     }
 
 }

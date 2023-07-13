@@ -86,7 +86,7 @@ public class ServerConnectionInitializerLegacy {
         PacketEvents.getAPI().getProtocolManager().setUser(channel, user);
     }
 
-    public static void destroyChannel(Object ch) {
+    public static void destroyHandlers(Object ch) {
         Channel channel = (Channel) ch;
         //1.7 has no EpollSocketChannel
         if (!(channel instanceof NioSocketChannel)) {
